@@ -8,6 +8,12 @@ Go microservices workshop example project.
 
 - [go-microservices.pdf](/go-microservices.pdf) (2.8MB)
 
+## More and better example services
+
+- [addsvc](https://github.com/go-kit/kit/tree/master/examples/addsvc), featuring multiple transports and distributed tracing
+- [profilesvc](https://github.com/go-kit/kit/tree/master/examples/profilesvc), featuring REST-y semantics
+- [shipping](https://github.com/go-kit/kit/tree/master/examples/shipping), a complete DDD application
+
 ## Putting microservices in context
 
 - [Microservices patterns](http://microservices.io/), Chris Richardson
