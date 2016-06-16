@@ -69,11 +69,13 @@ func makeCountEndpoint(s Service) endpoint.Endpoint {
 func main() {
 	ctx := context.Background()
 	logger := log.NewLogfmtLogger(os.Stderr)
+
 	var s Service
 	{
 		s = service{}
 		s = logging(logger)(s)
 	}
+
 	http.Handle("/uppercase", httptransport.NewServer(
 		ctx,
 		makeUppercaseEndpoint(s),
@@ -86,6 +88,8 @@ func main() {
 		decodeCountRequest,
 		encodeCountResponse,
 	))
+
+	logger.Log("transport", "HTTP", "addr", ":8080")
 	logger.Log("err", http.ListenAndServe(":8080", nil))
 }
 
@@ -130,16 +134,24 @@ type loggingMiddleware struct {
 	logger log.Logger
 }
 
-func (mw loggingMiddleware) Uppercase(s string) (string, error) {
-	begin := time.Now()
-	v, err := mw.next.Uppercase(s)
-	mw.logger.Log("method", "Uppercase", "s", s, "v", v, "err", err, "took", time.Since(begin))
-	return v, err
+func (mw loggingMiddleware) Uppercase(s string) (v string, err error) {
+	defer func(begin time.Time) {
+		mw.logger.Log(
+			"method", "Uppercase",
+			"s", s,
+			"v", v,
+			"err", err,
+			"took", time.Since(begin),
+		)
+	}(time.Now())
+	return mw.next.Uppercase(s)
 }
 
 func (mw loggingMiddleware) Count(s string) int {
 	begin := time.Now()
+
 	i := mw.next.Count(s)
+
 	mw.logger.Log("method", "Count", "s", s, "i", i, "took", time.Since(begin))
 	return i
 }
