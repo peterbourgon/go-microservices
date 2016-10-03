@@ -43,7 +43,7 @@ deployment:
   push:
     branch: master
     commands:
-      - docker login -u "$DOCKER_REGISTRY_USER" -p "$DOCKER_REGISTRY_PASSWORD"
+      - docker login -e "$DOCKER_REGISTRY_EMAIL" -u "$DOCKER_REGISTRY_USER" -p "$DOCKER_REGISTRY_PASSWORD"
       - IMAGE_TAG="peterbourgon/addsvc:$(./misc/image-tag)"
       - echo Pushing $IMAGE_TAG
       - docker tag peterbourgon/addsvc "$IMAGE_TAG"
