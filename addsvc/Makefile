@@ -7,5 +7,5 @@ build/.done: Dockerfile build/addsvc
 	touch $@
 
 build/addsvc:
-	GOOS=linux GOARCH=amd64 go build -o $@ ./cmd/addsvc
+	CGO_ENABLED=0 GOOS=linux GOARCH=amd64 go build -o $@ ./cmd/addsvc
 
