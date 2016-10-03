@@ -1,3 +1,11 @@
+misc/data
+misc/log
+misc/reports
+stringsvc/pacts
+stringsvc/logs
+addsvc/cmd/addsvc/pacts
+addsvc/cmd/addsvc/logs
+
 # Compiled Object files, Static and Dynamic libs (Shared Objects)
 *.o
 *.a
