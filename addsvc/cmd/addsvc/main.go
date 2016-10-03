@@ -8,16 +8,13 @@ import (
 	"os"
 	"os/signal"
 	"syscall"
-	"time"
 
 	"github.com/go-kit/kit/log"
 	"github.com/go-kit/kit/metrics"
 	"github.com/go-kit/kit/metrics/prometheus"
 	stdopentracing "github.com/opentracing/opentracing-go"
 	stdprometheus "github.com/prometheus/client_golang/prometheus"
-	"github.com/tracer/tracer"
 	"golang.org/x/net/context"
-	"google.golang.org/grpc"
 
 	"github.com/peterbourgon/go-microservices/addsvc/pkg/endpoints"
 	addhttp "github.com/peterbourgon/go-microservices/addsvc/pkg/http"
@@ -29,7 +26,7 @@ func main() {
 		debugAddr     = flag.String("debug.addr", ":8080", "Debug and metrics listen address")
 		httpAddr      = flag.String("http.addr", ":8081", "HTTP listen address")
 		stringsvcAddr = flag.String("stringsvc.addr", "", "Optional host:port of a stringsvc")
-		tracerAddr    = flag.String("tracer.addr", "", "Enable Tracer tracing via a Tracer server host:port")
+		//tracerAddr    = flag.String("tracer.addr", "", "Enable Tracer tracing via a Tracer server host:port")
 	)
 	flag.Parse()
 
@@ -74,21 +71,21 @@ func main() {
 	// Tracing domain.
 	var trace stdopentracing.Tracer
 	{
-		if *tracerAddr != "" {
-			logger.Log("tracer", *tracerAddr)
-			storer, err := tracer.NewGRPC(*tracerAddr, &tracer.GRPCOptions{
-				QueueSize:     1024,
-				FlushInterval: time.Second,
-			}, grpc.WithInsecure())
-			if err != nil {
-				logger.Log("err", err)
-				os.Exit(1)
-			}
-			trace = tracer.NewTracer("addsvc", storer, tracer.RandomID{})
-		} else {
-			logger.Log("tracer", "none")
-			trace = stdopentracing.GlobalTracer() // no-op
-		}
+		//if *tracerAddr != "" {
+		//	logger.Log("tracer", *tracerAddr)
+		//	storer, err := tracer.NewGRPC(*tracerAddr, &tracer.GRPCOptions{
+		//		QueueSize:     1024,
+		//		FlushInterval: time.Second,
+		//	}, grpc.WithInsecure())
+		//	if err != nil {
+		//		logger.Log("err", err)
+		//		os.Exit(1)
+		//	}
+		//	trace = tracer.NewTracer("addsvc", storer, tracer.RandomID{})
+		//} else {
+		logger.Log("tracer", "none")
+		trace = stdopentracing.GlobalTracer() // no-op
+		//}
 	}
 
 	// Mechanical domain.
