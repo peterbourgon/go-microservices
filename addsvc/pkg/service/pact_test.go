@@ -3,6 +3,7 @@ package service
 import (
 	"fmt"
 	"net/http"
+	"os"
 	"strings"
 	"testing"
 
@@ -10,6 +11,10 @@ import (
 )
 
 func TestStringsvc(t *testing.T) {
+	if os.Getenv("WRITE_PACTS") == "" {
+		t.Skip("skipping Pact contracts; set WRITE_PACTS environment variable to enable")
+	}
+
 	pact := dsl.Pact{
 		Port:     6666,
 		Consumer: "addsvc",
