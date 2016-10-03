@@ -9,8 +9,11 @@
     {
       "description": "stringsvc uppercase",
       "request": {
-        "method": "post",
+        "method": "POST",
         "path": "/uppercase",
+        "headers": {
+          "Content-Type": "application/json; charset=utf-8"
+        },
         "body": {
           "s": "foo"
         }
@@ -18,6 +21,7 @@
       "response": {
         "status": 200,
         "headers": {
+          "Content-Type": "application/json; charset=utf-8"
         },
         "body": {
           "v": "FOO"

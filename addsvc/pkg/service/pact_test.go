@@ -25,18 +25,20 @@ func TestStringsvc(t *testing.T) {
 	pact.AddInteraction().
 		UponReceiving("stringsvc uppercase").
 		WithRequest(dsl.Request{
-			Method: "post",
-			Path:   "/uppercase",
-			Body:   `{"s":"foo"}`,
+			Headers: map[string]string{"Content-Type": "application/json; charset=utf-8"},
+			Method:  "POST",
+			Path:    "/uppercase",
+			Body:    `{"s":"foo"}`,
 		}).
 		WillRespondWith(dsl.Response{
-			Status: 200,
-			Body:   `{"v":"FOO"}`,
+			Status:  200,
+			Headers: map[string]string{"Content-Type": "application/json; charset=utf-8"},
+			Body:    `{"v":"FOO"}`,
 		})
 
 	if err := pact.Verify(func() error {
 		u := fmt.Sprintf("http://localhost:%d/uppercase", pact.Server.Port)
-		req, err := http.NewRequest("GET", u, strings.NewReader(`{"s":"foo"}`))
+		req, err := http.NewRequest("POST", u, strings.NewReader(`{"s":"foo"}`))
 		if err != nil {
 			return err
 		}
