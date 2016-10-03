@@ -1,0 +1,19 @@
+apiVersion: extensions/v1beta1
+kind: Deployment
+metadata:
+  name: addsvc
+spec:
+  replicas: 1
+  template:
+    metadata:
+      labels:
+        name: addsvc
+    spec:
+      containers:
+      - name: addsvc
+        image: peterbourgon/addsvc:master-0d5c523
+        ports:
+        - containerPort: 80
+        args:
+        - /addsvc
+        - --http.addr=:80
