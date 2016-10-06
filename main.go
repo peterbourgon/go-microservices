@@ -10,6 +10,7 @@ import (
 	"github.com/go-kit/kit/circuitbreaker"
 	"github.com/go-kit/kit/endpoint"
 	"github.com/go-kit/kit/ratelimit"
+	httptransport "github.com/go-kit/kit/transport/http"
 	rl "github.com/juju/ratelimit"
 	"github.com/sony/gobreaker"
 	"golang.org/x/net/context"
@@ -24,23 +25,9 @@ type Service interface {
 // basicService implements Service.
 type basicService struct{}
 
-func (s basicService) Sum(a, b int) (v int, err error) {
-	defer func() {
-		log.Printf("Sum(%d, %d) = %d, %v", a, b, v, err)
-	}()
-	return a + b, nil
-}
+func (s basicService) Sum(a, b int) (v int, err error) { return a + b, nil }
 
-func (s basicService) Concat(a, b string) (v string, err error) {
-	defer func() {
-		log.Printf("Concat(%q, %q) = %q, %v", a, b, v, err)
-	}()
-	return a + b, nil
-}
-
-// We get endpoints by writing endpoit constructors.
-// This keeps the service pure, and avoids mixing in
-// endpoint concerns.
+func (s basicService) Concat(a, b string) (v string, err error) { return a + b, nil }
 
 func makeSumEndpoint(s Service) endpoint.Endpoint {
 	return func(_ context.Context, request interface{}) (response interface{}, err error) {
@@ -76,20 +63,6 @@ type ConcatResponse struct {
 	Err error  `json:"err"`
 }
 
-func demonstrateEndpointMiddlewares() {
-	// Now that we have endpoints, we can have endpoint middlewares!
-	var _ endpoint.Middleware
-
-	// Here's how you'd use them.
-	var e endpoint.Endpoint
-	e = makeSumEndpoint(basicService{})
-	e = ratelimit.NewTokenBucketLimiter(rl.NewBucketWithRate(100, 100))(e) // Dive to definition!
-	e = circuitbreaker.Gobreaker(gobreaker.NewCircuitBreaker(gobreaker.Settings{}))(e)
-}
-
-// We can also define service middlewares,
-// custom to our application.
-
 type ServiceMiddleware func(Service) Service
 
 // LoggingMiddleware takes a logger as a dependency
@@ -100,7 +73,6 @@ func LoggingMiddleware(logger *log.Logger) ServiceMiddleware {
 	}
 }
 
-// loggingMiddleware implements a logging service middleware.
 type loggingMiddleware struct {
 	logger *log.Logger
 	next   Service
@@ -120,73 +92,75 @@ func (mw loggingMiddleware) Concat(a, b string) (v string, err error) {
 	return mw.next.Concat(a, b)
 }
 
-// Now we can delete the logging in the
-// basicService implementation! Yay!
-
-func demonstrateServiceMiddlewares() {
-	var s Service
-	s = basicService{}
-	s = LoggingMiddleware(log.New(os.Stderr, "", log.LstdFlags))(s)
-}
-
-// We've built all this structure,
-// but it's not yet exposed.
-
-func (s basicService) ServeHTTP(w http.ResponseWriter, r *http.Request) {
-	switch r.URL.Path {
-	case "/sum":
-		var req struct {
-			A int `json:"a"`
-			B int `json:"b"`
-		}
-		if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
-			code := http.StatusBadRequest
-			log.Printf("%s: %s %s: %d", r.RemoteAddr, r.Method, r.URL, code)
-			http.Error(w, err.Error(), code)
-			return
-		}
-		v, err := s.Sum(req.A, req.B)
-		if err != nil {
-			code := http.StatusInternalServerError
-			log.Printf("%s: %s %s: %d", r.RemoteAddr, r.Method, r.URL, code)
-			http.Error(w, err.Error(), code)
-			return
-		}
-		w.Header().Set("Content-Type", "application/json; charset=utf-8")
-		json.NewEncoder(w).Encode(map[string]int{"v": v})
-		log.Printf("%s: %s %s: %d", r.RemoteAddr, r.Method, r.URL, 200)
-
-	case "/concat":
-		var req struct {
-			A string `json:"a"`
-			B string `json:"b"`
-		}
-		if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
-			code := http.StatusBadRequest
-			log.Printf("%s: %s %s: %d", r.RemoteAddr, r.Method, r.URL, code)
-			http.Error(w, err.Error(), code)
-			return
-		}
-		v, err := s.Concat(req.A, req.B)
-		if err != nil {
-			code := http.StatusInternalServerError
-			log.Printf("%s: %s %s: %d", r.RemoteAddr, r.Method, r.URL, code)
-			http.Error(w, err.Error(), code)
-			return
-		}
-		w.Header().Set("Content-Type", "application/json; charset=utf-8")
-		json.NewEncoder(w).Encode(map[string]string{"v": v})
-		log.Printf("%s: %s %s: %d", r.RemoteAddr, r.Method, r.URL, 200)
-
-	default:
-		log.Printf("%s: %s %s: %d", r.RemoteAddr, r.Method, r.URL, 400)
-		http.NotFound(w, r)
-	}
-}
-
 func main() {
 	addr := flag.String("addr", ":8080", "HTTP listen address")
 	flag.Parse()
+
+	// This is another Go kit idiom: wiring everything up in a big func main.
+	// Start at the middle of the onion: the business logic, the service.
+	var s Service
+	{
+		s = basicService{}
+		s = LoggingMiddleware(log.New(os.Stderr, "", log.LstdFlags))(s)
+	}
+
+	// Then, create our two endpoints, wrapping the service.
+	var sumEndpoint endpoint.Endpoint
+	{
+		sumEndpoint = makeSumEndpoint(s)
+		sumEndpoint = ratelimit.NewTokenBucketLimiter(rl.NewBucketWithRate(1, 1))(sumEndpoint)
+		sumEndpoint = circuitbreaker.Gobreaker(gobreaker.NewCircuitBreaker(gobreaker.Settings{}))(sumEndpoint)
+	}
+	var concatEndpoint endpoint.Endpoint
+	{
+		concatEndpoint = makeConcatEndpoint(s)
+		concatEndpoint = ratelimit.NewTokenBucketLimiter(rl.NewBucketWithRate(100, 100))(concatEndpoint)
+		concatEndpoint = circuitbreaker.Gobreaker(gobreaker.NewCircuitBreaker(gobreaker.Settings{}))(concatEndpoint)
+	}
+
+	// Now that we have endpoints, we can leverage Go kit's package transport.
+	// Let's use the HTTP transport.
+	mux := http.NewServeMux()
+	{
+		mux.Handle("/sum", httptransport.NewServer(
+			context.Background(),
+			sumEndpoint,
+			decodeSumRequest,
+			encodeSumResponse,
+		))
+		mux.Handle("/concat", httptransport.NewServer(
+			context.Background(),
+			concatEndpoint,
+			decodeConcatRequest,
+			encodeConcatResponse,
+		))
+	}
+
 	log.Printf("listening on %s", *addr)
-	log.Fatal(http.ListenAndServe(*addr, basicService{}))
+	log.Fatal(http.ListenAndServe(*addr, mux))
+}
+
+// These functions are just extracted from our previous ServeHTTP method,
+// leveraging the new types we've defined.
+
+func decodeSumRequest(_ context.Context, r *http.Request) (request interface{}, err error) {
+	var req SumRequest
+	err = json.NewDecoder(r.Body).Decode(&req)
+	return req, err
+}
+
+func decodeConcatRequest(_ context.Context, r *http.Request) (request interface{}, err error) {
+	var req ConcatRequest
+	err = json.NewDecoder(r.Body).Decode(&req)
+	return req, err
+}
+
+func encodeSumResponse(_ context.Context, w http.ResponseWriter, response interface{}) error {
+	w.Header().Set("Content-Type", "application/json; charset=utf-8")
+	return json.NewEncoder(w).Encode(response)
+}
+
+func encodeConcatResponse(_ context.Context, w http.ResponseWriter, response interface{}) error {
+	w.Header().Set("Content-Type", "application/json; charset=utf-8")
+	return json.NewEncoder(w).Encode(response)
 }
