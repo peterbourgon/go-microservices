@@ -15,10 +15,11 @@ type Service interface {
 }
 
 // New returns a basic Service with all of the expected middlewares wired in.
-func New(logger log.Logger, ints, chars metrics.Counter) Service {
+func New(logger log.Logger, ints, chars metrics.Counter, concatTransform func(string) (string, error)) Service {
 	var svc Service
 	{
 		svc = NewBasicService()
+		svc = ConcatTransformMiddleware(concatTransform)(svc) // What if we put this at the end?
 		svc = LoggingMiddleware(logger)(svc)
 		svc = InstrumentingMiddleware(ints, chars)(svc)
 	}
