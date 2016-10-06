@@ -32,16 +32,21 @@ func (s basicService) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 			B int `json:"b"`
 		}
 		if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
-			http.Error(w, err.Error(), http.StatusBadRequest)
+			code := http.StatusBadRequest
+			log.Printf("%s: %s %s: %d", r.RemoteAddr, r.Method, r.URL, code)
+			http.Error(w, err.Error(), code)
 			return
 		}
 		v, err := s.Sum(req.A, req.B)
 		if err != nil {
-			http.Error(w, err.Error(), http.StatusInternalServerError)
+			code := http.StatusInternalServerError
+			log.Printf("%s: %s %s: %d", r.RemoteAddr, r.Method, r.URL, code)
+			http.Error(w, err.Error(), code)
 			return
 		}
 		w.Header().Set("Content-Type", "application/json; charset=utf-8")
 		json.NewEncoder(w).Encode(map[string]int{"v": v})
+		log.Printf("%s: %s %s: %d", r.RemoteAddr, r.Method, r.URL, 200)
 
 	case "/concat":
 		var req struct {
@@ -49,18 +54,24 @@ func (s basicService) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 			B string `json:"b"`
 		}
 		if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
-			http.Error(w, err.Error(), http.StatusBadRequest)
+			code := http.StatusBadRequest
+			log.Printf("%s: %s %s: %d", r.RemoteAddr, r.Method, r.URL, code)
+			http.Error(w, err.Error(), code)
 			return
 		}
 		v, err := s.Concat(req.A, req.B)
 		if err != nil {
-			http.Error(w, err.Error(), http.StatusInternalServerError)
+			code := http.StatusInternalServerError
+			log.Printf("%s: %s %s: %d", r.RemoteAddr, r.Method, r.URL, code)
+			http.Error(w, err.Error(), code)
 			return
 		}
 		w.Header().Set("Content-Type", "application/json; charset=utf-8")
 		json.NewEncoder(w).Encode(map[string]string{"v": v})
+		log.Printf("%s: %s %s: %d", r.RemoteAddr, r.Method, r.URL, 200)
 
 	default:
+		log.Printf("%s: %s %s: %d", r.RemoteAddr, r.Method, r.URL, 400)
 		http.NotFound(w, r)
 	}
 }
