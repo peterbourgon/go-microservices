@@ -16,11 +16,17 @@ type Service interface {
 // basicService implements Service.
 type basicService struct{}
 
-func (s basicService) Sum(a, b int) (int, error) {
+func (s basicService) Sum(a, b int) (v int, err error) {
+	defer func() {
+		log.Printf("Sum(%d, %d) = %d, %v", a, b, v, err)
+	}()
 	return a + b, nil
 }
 
-func (s basicService) Concat(a, b string) (string, error) {
+func (s basicService) Concat(a, b string) (v string, err error) {
+	defer func() {
+		log.Printf("Concat(%q, %q) = %q, %v", a, b, v, err)
+	}()
 	return a + b, nil
 }
 
