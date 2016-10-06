@@ -1,8 +1,7 @@
 package service
 
 import (
-	"log"
-
+	"github.com/go-kit/kit/log"
 	"github.com/go-kit/kit/metrics"
 )
 
@@ -13,7 +12,7 @@ type Service interface {
 }
 
 // New returns a basic Service with all of the expected middlewares wired in.
-func New(logger *log.Logger, ints, chars metrics.Counter) Service {
+func New(logger log.Logger, ints, chars metrics.Counter) Service {
 	var svc Service
 	{
 		svc = NewBasicService()
