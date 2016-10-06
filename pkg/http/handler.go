@@ -7,30 +7,73 @@ import (
 	"io/ioutil"
 	"net/http"
 
+	"github.com/go-kit/kit/log"
 	httptransport "github.com/go-kit/kit/transport/http"
-	"github.com/peterbourgon/go-microservices/pkg/endpoints"
 	"github.com/prometheus/client_golang/prometheus/promhttp"
 	"golang.org/x/net/context"
+
+	"github.com/peterbourgon/go-microservices/pkg/endpoints"
+	"github.com/peterbourgon/go-microservices/pkg/service"
 )
 
 // NewHandler returns a handler that makes a set of endpoints available on
 // predefined paths.
-func NewHandler(ctx context.Context, endpoints endpoints.Endpoints) http.Handler {
+func NewHandler(ctx context.Context, endpoints endpoints.Endpoints, logger log.Logger) http.Handler {
+	options := []httptransport.ServerOption{
+		httptransport.ServerErrorEncoder(errorEncoder),
+		httptransport.ServerErrorLogger(logger),
+	}
 	m := http.NewServeMux()
 	m.Handle("/sum", httptransport.NewServer(
 		ctx,
 		endpoints.SumEndpoint,
 		DecodeSumRequest,
 		EncodeGenericResponse,
+		options...,
 	))
 	m.Handle("/concat", httptransport.NewServer(
 		ctx,
 		endpoints.ConcatEndpoint,
 		DecodeConcatRequest,
 		EncodeGenericResponse,
+		options...,
 	))
 	m.Handle("/metrics", promhttp.Handler())
 	return m
+}
+
+func errorEncoder(_ context.Context, err error, w http.ResponseWriter) {
+	w.WriteHeader(err2code(err))
+	json.NewEncoder(w).Encode(errorWrapper{Error: err.Error()})
+}
+
+func err2code(err error) int {
+	switch err {
+	case service.ErrTwoZeroes, service.ErrMaxSizeExceeded, service.ErrIntOverflow:
+		return http.StatusBadRequest
+	}
+	switch e := err.(type) {
+	case httptransport.Error:
+		switch e.Domain {
+		case httptransport.DomainDecode:
+			return http.StatusBadRequest
+		case httptransport.DomainDo:
+			return err2code(e.Err)
+		}
+	}
+	return http.StatusInternalServerError
+}
+
+func errorDecoder(r *http.Response) error {
+	var w errorWrapper
+	if err := json.NewDecoder(r.Body).Decode(&w); err != nil {
+		return err
+	}
+	return errors.New(w.Error)
+}
+
+type errorWrapper struct {
+	Error string `json:"error"`
 }
 
 // DecodeSumRequest is a transport/http.DecodeRequestFunc that decodes a
