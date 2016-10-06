@@ -10,7 +10,7 @@ import (
 	"github.com/sony/gobreaker"
 	"golang.org/x/net/context"
 
-	"github.com/peterbourgon/go-microservices/pkg/service"
+	"github.com/peterbourgon/go-microservices/addsvc/pkg/service"
 )
 
 // New returns an Endpoints that wraps the provided server, and wires in all of
