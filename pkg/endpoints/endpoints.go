@@ -48,18 +48,18 @@ type Endpoints struct {
 
 // MakeSumEndpoint constructs a Sum endpoint wrapping the service.
 func MakeSumEndpoint(s service.Service) endpoint.Endpoint {
-	return func(_ context.Context, request interface{}) (response interface{}, err error) {
+	return func(ctx context.Context, request interface{}) (response interface{}, err error) {
 		req := request.(SumRequest)
-		v, err := s.Sum(req.A, req.B)
+		v, err := s.Sum(ctx, req.A, req.B)
 		return SumResponse{V: v, Err: err}, nil
 	}
 }
 
 // MakeConcatEndpoint constructs a Concat endpoint wrapping the service.
 func MakeConcatEndpoint(s service.Service) endpoint.Endpoint {
-	return func(_ context.Context, request interface{}) (response interface{}, err error) {
+	return func(ctx context.Context, request interface{}) (response interface{}, err error) {
 		req := request.(ConcatRequest)
-		v, err := s.Concat(req.A, req.B)
+		v, err := s.Concat(ctx, req.A, req.B)
 		return ConcatResponse{V: v, Err: err}, nil
 	}
 }

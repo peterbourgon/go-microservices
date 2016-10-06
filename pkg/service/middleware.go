@@ -3,6 +3,7 @@ package service
 import (
 	"github.com/go-kit/kit/log"
 	"github.com/go-kit/kit/metrics"
+	"golang.org/x/net/context"
 )
 
 // Middleware describes a service (as opposed to endpoint) middleware.
@@ -21,18 +22,18 @@ type loggingMiddleware struct {
 	next   Service
 }
 
-func (mw loggingMiddleware) Sum(a, b int) (v int, err error) {
+func (mw loggingMiddleware) Sum(ctx context.Context, a, b int) (v int, err error) {
 	defer func() {
 		mw.logger.Log("method", "Sum", "a", a, "b", b, "v", v, "err", err)
 	}()
-	return mw.next.Sum(a, b)
+	return mw.next.Sum(ctx, a, b)
 }
 
-func (mw loggingMiddleware) Concat(a, b string) (v string, err error) {
+func (mw loggingMiddleware) Concat(ctx context.Context, a, b string) (v string, err error) {
 	defer func() {
 		mw.logger.Log("method", "Concat", "a", a, "b", b, "v", v, "err", err)
 	}()
-	return mw.next.Concat(a, b)
+	return mw.next.Concat(ctx, a, b)
 }
 
 // InstrumentingMiddleware returns a service middleware that instruments
@@ -54,14 +55,14 @@ type instrumentingMiddleware struct {
 	next  Service
 }
 
-func (mw instrumentingMiddleware) Sum(a, b int) (int, error) {
-	v, err := mw.next.Sum(a, b)
+func (mw instrumentingMiddleware) Sum(ctx context.Context, a, b int) (int, error) {
+	v, err := mw.next.Sum(ctx, a, b)
 	mw.ints.Add(float64(v))
 	return v, err
 }
 
-func (mw instrumentingMiddleware) Concat(a, b string) (string, error) {
-	v, err := mw.next.Concat(a, b)
+func (mw instrumentingMiddleware) Concat(ctx context.Context, a, b string) (string, error) {
+	v, err := mw.next.Concat(ctx, a, b)
 	mw.chars.Add(float64(len(v)))
 	return v, err
 }
