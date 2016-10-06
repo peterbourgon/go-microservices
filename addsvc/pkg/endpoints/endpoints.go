@@ -6,7 +6,9 @@ import (
 	"github.com/go-kit/kit/log"
 	"github.com/go-kit/kit/metrics"
 	"github.com/go-kit/kit/ratelimit"
+	"github.com/go-kit/kit/tracing/opentracing"
 	rl "github.com/juju/ratelimit"
+	stdopentracing "github.com/opentracing/opentracing-go"
 	"github.com/sony/gobreaker"
 	"golang.org/x/net/context"
 
@@ -15,10 +17,11 @@ import (
 
 // New returns an Endpoints that wraps the provided server, and wires in all of
 // the expected endpoint middlewares via the various parameters.
-func New(svc service.Service, logger log.Logger, duration metrics.Histogram) Endpoints {
+func New(svc service.Service, logger log.Logger, duration metrics.Histogram, trace stdopentracing.Tracer) Endpoints {
 	var sumEndpoint endpoint.Endpoint
 	{
 		sumEndpoint = MakeSumEndpoint(svc)
+		sumEndpoint = opentracing.TraceServer(trace, "Sum")(sumEndpoint)
 		sumEndpoint = ratelimit.NewTokenBucketLimiter(rl.NewBucketWithRate(1, 1))(sumEndpoint)
 		sumEndpoint = circuitbreaker.Gobreaker(gobreaker.NewCircuitBreaker(gobreaker.Settings{}))(sumEndpoint)
 		sumEndpoint = LoggingMiddleware(log.NewContext(logger).With("method", "Sum"))(sumEndpoint)
@@ -27,6 +30,7 @@ func New(svc service.Service, logger log.Logger, duration metrics.Histogram) End
 	var concatEndpoint endpoint.Endpoint
 	{
 		concatEndpoint = MakeConcatEndpoint(svc)
+		concatEndpoint = opentracing.TraceServer(trace, "Concat")(concatEndpoint)
 		concatEndpoint = ratelimit.NewTokenBucketLimiter(rl.NewBucketWithRate(100, 100))(concatEndpoint)
 		concatEndpoint = circuitbreaker.Gobreaker(gobreaker.NewCircuitBreaker(gobreaker.Settings{}))(concatEndpoint)
 		concatEndpoint = LoggingMiddleware(log.NewContext(logger).With("method", "Concat"))(concatEndpoint)

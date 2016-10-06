@@ -12,6 +12,7 @@ import (
 	"github.com/go-kit/kit/log"
 	"github.com/go-kit/kit/metrics"
 	"github.com/go-kit/kit/metrics/prometheus"
+	stdopentracing "github.com/opentracing/opentracing-go"
 	stdprometheus "github.com/prometheus/client_golang/prometheus"
 	"golang.org/x/net/context"
 
@@ -32,6 +33,25 @@ func main() {
 		logger = log.NewLogfmtLogger(os.Stderr)
 		logger = log.NewContext(logger).With("ts", log.DefaultTimestampUTC)
 		logger = log.NewContext(logger).With("caller", log.DefaultCaller)
+	}
+
+	var trace stdopentracing.Tracer
+	{
+		//if *tracerAddr != "" {
+		//      logger.Log("tracer", *tracerAddr)
+		//      storer, err := tracer.NewGRPC(*tracerAddr, &tracer.GRPCOptions{
+		//              QueueSize:     1024,
+		//              FlushInterval: time.Second,
+		//      }, grpc.WithInsecure())
+		//      if err != nil {
+		//              logger.Log("err", err)
+		//              os.Exit(1)
+		//      }
+		//      trace = tracer.NewTracer("addsvc", storer, tracer.RandomID{})
+		//} else {
+		logger.Log("tracer", "none")
+		trace = stdopentracing.GlobalTracer() // no-op
+		//}
 	}
 
 	// Our metrics are dependencies, here we create them.
@@ -68,8 +88,8 @@ func main() {
 	}
 
 	svc := service.New(logger, ints, chars, transform)
-	eps := endpoints.New(svc, logger, duration)
-	mux := addhttp.NewHandler(context.Background(), eps, logger)
+	eps := endpoints.New(svc, logger, duration, trace)
+	mux := addhttp.NewHandler(context.Background(), eps, logger, trace)
 
 	logger.Log("transport", "HTTP", "addr", *httpAddr)
 	logger.Log("exit", http.ListenAndServe(*httpAddr, mux))
