@@ -9,6 +9,7 @@ import (
 
 	httptransport "github.com/go-kit/kit/transport/http"
 	"github.com/peterbourgon/go-microservices/pkg/endpoints"
+	"github.com/prometheus/client_golang/prometheus/promhttp"
 	"golang.org/x/net/context"
 )
 
@@ -28,6 +29,7 @@ func NewHandler(ctx context.Context, endpoints endpoints.Endpoints) http.Handler
 		DecodeConcatRequest,
 		EncodeGenericResponse,
 	))
+	m.Handle("/metrics", promhttp.Handler())
 	return m
 }
 
