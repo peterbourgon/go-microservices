@@ -1,8 +1,7 @@
 package service
 
 import (
-	"log"
-
+	"github.com/go-kit/kit/log"
 	"github.com/go-kit/kit/metrics"
 )
 
@@ -11,27 +10,27 @@ type Middleware func(Service) Service
 
 // LoggingMiddleware takes a logger as a dependency
 // and returns a ServiceMiddleware.
-func LoggingMiddleware(logger *log.Logger) Middleware {
+func LoggingMiddleware(logger log.Logger) Middleware {
 	return func(next Service) Service {
 		return loggingMiddleware{logger, next}
 	}
 }
 
 type loggingMiddleware struct {
-	logger *log.Logger
+	logger log.Logger
 	next   Service
 }
 
 func (mw loggingMiddleware) Sum(a, b int) (v int, err error) {
 	defer func() {
-		mw.logger.Printf("Sum(%d, %d) = %d, %v", a, b, v, err) // single purpose
+		mw.logger.Log("method", "Sum", "a", a, "b", b, "v", v, "err", err)
 	}()
 	return mw.next.Sum(a, b)
 }
 
 func (mw loggingMiddleware) Concat(a, b string) (v string, err error) {
 	defer func() {
-		mw.logger.Printf("Concat(%q, %q) = %q, %v", a, b, v, err)
+		mw.logger.Log("method", "Concat", "a", a, "b", b, "v", v, "err", err)
 	}()
 	return mw.next.Concat(a, b)
 }
