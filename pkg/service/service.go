@@ -1,6 +1,8 @@
 package service
 
 import (
+	"errors"
+
 	"github.com/go-kit/kit/log"
 	"github.com/go-kit/kit/metrics"
 	"golang.org/x/net/context"
@@ -23,6 +25,34 @@ func New(logger log.Logger, ints, chars metrics.Counter) Service {
 	return svc
 }
 
+var (
+	// ErrTwoZeroes is an arbitrary business rule for the Add method.
+	ErrTwoZeroes = errors.New("can't sum two zeroes")
+
+	// ErrIntOverflow protects the Add method. We've decided that this error
+	// indicates a misbehaving service and should count against e.g. circuit
+	// breakers. So, we return it directly in endpoints, to illustrate the
+	// difference. In a real service, this probably wouldn't be the case.
+	ErrIntOverflow = errors.New("integer overflow")
+
+	// ErrMaxSizeExceeded protects the Concat method.
+	ErrMaxSizeExceeded = errors.New("result exceeds maximum size")
+)
+
+func str2err(s string) error {
+	if s == "" {
+		return nil
+	}
+	return errors.New(s)
+}
+
+func err2str(err error) string {
+	if err == nil {
+		return ""
+	}
+	return err.Error()
+}
+
 // NewBasicService returns a naïve, stateless implementation of Service.
 func NewBasicService() Service {
 	return basicService{}
@@ -30,6 +60,27 @@ func NewBasicService() Service {
 
 type basicService struct{}
 
-func (s basicService) Sum(_ context.Context, a, b int) (v int, err error) { return a + b, nil }
+const (
+	intMax = 1<<31 - 1
+	intMin = -(intMax + 1)
+	maxLen = 10
+)
 
-func (s basicService) Concat(_ context.Context, a, b string) (v string, err error) { return a + b, nil }
+// Sum implements Service.
+func (s basicService) Sum(_ context.Context, a, b int) (int, error) {
+	if a == 0 && b == 0 {
+		return 0, ErrTwoZeroes
+	}
+	if (b > 0 && a > (intMax-b)) || (b < 0 && a < (intMin-b)) {
+		return 0, ErrIntOverflow
+	}
+	return a + b, nil
+}
+
+// Concat implements Service.
+func (s basicService) Concat(_ context.Context, a, b string) (string, error) {
+	if len(a)+len(b) > maxLen {
+		return "", ErrMaxSizeExceeded
+	}
+	return a + b, nil
+}
