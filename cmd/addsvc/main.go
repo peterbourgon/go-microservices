@@ -56,7 +56,7 @@ func main() {
 	}
 
 	svc := service.New(logger, ints, chars)
-	eps := endpoints.New(svc, duration)
+	eps := endpoints.New(svc, logger, duration)
 	mux := addhttp.NewHandler(context.Background(), eps)
 
 	logger.Log("transport", "HTTP", "addr", *addr)
