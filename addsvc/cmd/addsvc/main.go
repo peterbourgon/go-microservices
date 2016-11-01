@@ -1,8 +1,11 @@
 package main
 
 import (
+	"bytes"
+	"encoding/json"
 	"flag"
 	"net/http"
+	"net/url"
 	"os"
 	"strings"
 
@@ -18,7 +21,10 @@ import (
 )
 
 func main() {
-	addr := flag.String("addr", ":8080", "HTTP listen address")
+	var (
+		addr      = flag.String("addr", ":8080", "HTTP listen address")
+		stringsvc = flag.String("stringsvc", "http://localhost:8081", "address of a stringsvc for Concat capitalization")
+	)
 	flag.Parse()
 
 	var logger log.Logger
@@ -56,7 +62,7 @@ func main() {
 		}, []string{"method", "success"})
 	}
 
-	svc := service.New(logger, ints, chars, uppercaseTransform)
+	svc := service.New(logger, ints, chars, uppercaseTransform(*stringsvc))
 	eps := endpoints.New(svc, logger, duration)
 	mux := addhttp.NewHandler(context.Background(), eps, logger)
 
@@ -64,6 +70,37 @@ func main() {
 	logger.Log("exit", http.ListenAndServe(*addr, mux))
 }
 
-func uppercaseTransform(s string) (string, error) {
-	return strings.ToUpper(s), nil
+func uppercaseTransform(endpoint string) func(string) (string, error) {
+	return func(s string) (string, error) {
+		if !strings.HasPrefix(endpoint, "http") {
+			endpoint = "http://" + endpoint
+		}
+		u, err := url.Parse(endpoint)
+		if err != nil {
+			return "", err
+		}
+		var buf bytes.Buffer
+		if err := json.NewEncoder(&buf).Encode(map[string]string{
+			"s": s,
+		}); err != nil {
+			return "", err
+		}
+		u.Path = "uppercase"
+		req, err := http.NewRequest("GET", u.String(), &buf)
+		if err != nil {
+			return "", err
+		}
+		resp, err := http.DefaultClient.Do(req)
+		if err != nil {
+			return "", err
+		}
+		defer resp.Body.Close()
+		var response struct {
+			V string `json:"v"`
+		}
+		if err := json.NewDecoder(resp.Body).Decode(&response); err != nil {
+			return "", err
+		}
+		return response.V, nil
+	}
 }
