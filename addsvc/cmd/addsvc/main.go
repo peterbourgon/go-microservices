@@ -4,6 +4,7 @@ import (
 	"flag"
 	"net/http"
 	"os"
+	"strings"
 
 	"github.com/go-kit/kit/log"
 	"github.com/go-kit/kit/metrics"
@@ -55,10 +56,14 @@ func main() {
 		}, []string{"method", "success"})
 	}
 
-	svc := service.New(logger, ints, chars)
+	svc := service.New(logger, ints, chars, uppercaseTransform)
 	eps := endpoints.New(svc, logger, duration)
 	mux := addhttp.NewHandler(context.Background(), eps, logger)
 
 	logger.Log("transport", "HTTP", "addr", *addr)
 	logger.Log("exit", http.ListenAndServe(*addr, mux))
+}
+
+func uppercaseTransform(s string) (string, error) {
+	return strings.ToUpper(s), nil
 }

@@ -66,3 +66,24 @@ func (mw instrumentingMiddleware) Concat(ctx context.Context, a, b string) (stri
 	mw.chars.Add(float64(len(v)))
 	return v, err
 }
+
+// ConcatTransformMiddleware will intercept the result of successful Concat
+// invocations, and apply the transform function to the result.
+func ConcatTransformMiddleware(transform func(string) (string, error)) Middleware {
+	return func(next Service) Service {
+		return concatTransformMiddleware{next, transform}
+	}
+}
+
+type concatTransformMiddleware struct {
+	Service
+	transform func(string) (string, error)
+}
+
+func (mw concatTransformMiddleware) Concat(ctx context.Context, a, b string) (string, error) {
+	v, err := mw.Service.Concat(ctx, a, b)
+	if err != nil {
+		return v, err
+	}
+	return mw.transform(v)
+}
