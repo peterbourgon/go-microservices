@@ -22,8 +22,8 @@ import (
 
 func main() {
 	var (
-		addr      = flag.String("addr", ":8080", "HTTP listen address")
-		stringsvc = flag.String("stringsvc", "http://localhost:8081", "address of a stringsvc for Concat capitalization")
+		httpAddr      = flag.String("addr", ":8080", "HTTP listen address")
+		stringsvcAddr = flag.String("stringsvc", "", "Optional address of a stringsvc for Concat capitalization")
 	)
 	flag.Parse()
 
@@ -62,15 +62,24 @@ func main() {
 		}, []string{"method", "success"})
 	}
 
-	svc := service.New(logger, ints, chars, uppercaseTransform(*stringsvc))
+	transform := nopTransform
+	if *stringsvcAddr != "" {
+		transform = remoteUppercaseTransform(*stringsvcAddr)
+	}
+
+	svc := service.New(logger, ints, chars, transform)
 	eps := endpoints.New(svc, logger, duration)
 	mux := addhttp.NewHandler(context.Background(), eps, logger)
 
-	logger.Log("transport", "HTTP", "addr", *addr)
-	logger.Log("exit", http.ListenAndServe(*addr, mux))
+	logger.Log("transport", "HTTP", "addr", *httpAddr)
+	logger.Log("exit", http.ListenAndServe(*httpAddr, mux))
 }
 
-func uppercaseTransform(endpoint string) func(string) (string, error) {
+func nopTransform(s string) (string, error) {
+	return s, nil
+}
+
+func remoteUppercaseTransform(endpoint string) func(string) (string, error) {
 	return func(s string) (string, error) {
 		if !strings.HasPrefix(endpoint, "http") {
 			endpoint = "http://" + endpoint
