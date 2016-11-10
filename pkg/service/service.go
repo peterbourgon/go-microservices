@@ -5,12 +5,13 @@ import (
 
 	"github.com/go-kit/kit/log"
 	"github.com/go-kit/kit/metrics"
+	"golang.org/x/net/context"
 )
 
 // Service describes a service that adds things together.
 type Service interface {
-	Sum(a, b int) (int, error)
-	Concat(a, b string) (string, error)
+	Sum(ctx context.Context, a, b int) (int, error)
+	Concat(ctx context.Context, a, b string) (string, error)
 }
 
 // New returns a basic Service with all of the expected middlewares wired in.
@@ -51,7 +52,7 @@ const (
 	maxLen = 10
 )
 
-func (s basicService) Sum(a, b int) (int, error) {
+func (s basicService) Sum(_ context.Context, a, b int) (int, error) {
 	if a == 0 && b == 0 {
 		return 0, ErrTwoZeroes
 	}
@@ -62,7 +63,7 @@ func (s basicService) Sum(a, b int) (int, error) {
 }
 
 // Concat implements Service.
-func (s basicService) Concat(a, b string) (string, error) {
+func (s basicService) Concat(_ context.Context, a, b string) (string, error) {
 	if len(a)+len(b) > maxLen {
 		return "", ErrMaxSizeExceeded
 	}
