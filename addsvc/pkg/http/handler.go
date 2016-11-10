@@ -14,8 +14,8 @@ import (
 	"github.com/prometheus/client_golang/prometheus/promhttp"
 	"golang.org/x/net/context"
 
-	"github.com/peterbourgon/go-microservices/pkg/endpoints"
-	"github.com/peterbourgon/go-microservices/pkg/service"
+	"github.com/peterbourgon/go-microservices/addsvc/pkg/endpoints"
+	"github.com/peterbourgon/go-microservices/addsvc/pkg/service"
 )
 
 // NewHandler returns a handler that makes a set of endpoints available on
