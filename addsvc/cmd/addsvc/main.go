@@ -12,9 +12,9 @@ import (
 	stdprometheus "github.com/prometheus/client_golang/prometheus"
 	"golang.org/x/net/context"
 
-	"github.com/peterbourgon/go-microservices/pkg/endpoints"
-	addhttp "github.com/peterbourgon/go-microservices/pkg/http"
-	"github.com/peterbourgon/go-microservices/pkg/service"
+	"github.com/peterbourgon/go-microservices/addsvc/pkg/endpoints"
+	addhttp "github.com/peterbourgon/go-microservices/addsvc/pkg/http"
+	"github.com/peterbourgon/go-microservices/addsvc/pkg/service"
 )
 
 func main() {
