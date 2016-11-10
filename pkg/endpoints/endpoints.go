@@ -1,9 +1,13 @@
 package endpoints
 
 import (
+	"github.com/go-kit/kit/circuitbreaker"
 	"github.com/go-kit/kit/endpoint"
 	"github.com/go-kit/kit/log"
 	"github.com/go-kit/kit/metrics"
+	"github.com/go-kit/kit/ratelimit"
+	rl "github.com/juju/ratelimit"
+	"github.com/sony/gobreaker"
 	"golang.org/x/net/context"
 
 	"github.com/peterbourgon/go-microservices/pkg/service"
@@ -15,12 +19,16 @@ func New(svc service.Service, logger log.Logger, duration metrics.Histogram) End
 	var sumEndpoint endpoint.Endpoint
 	{
 		sumEndpoint = MakeSumEndpoint(svc)
+		sumEndpoint = ratelimit.NewTokenBucketLimiter(rl.NewBucketWithRate(1, 1))(sumEndpoint)
+		sumEndpoint = circuitbreaker.Gobreaker(gobreaker.NewCircuitBreaker(gobreaker.Settings{}))(sumEndpoint)
 		sumEndpoint = LoggingMiddleware(log.NewContext(logger).With("method", "Sum"))(sumEndpoint)
 		sumEndpoint = InstrumentingMiddleware(duration.With("method", "Sum"))(sumEndpoint)
 	}
 	var concatEndpoint endpoint.Endpoint
 	{
 		concatEndpoint = MakeConcatEndpoint(svc)
+		concatEndpoint = ratelimit.NewTokenBucketLimiter(rl.NewBucketWithRate(100, 100))(concatEndpoint)
+		concatEndpoint = circuitbreaker.Gobreaker(gobreaker.NewCircuitBreaker(gobreaker.Settings{}))(concatEndpoint)
 		concatEndpoint = LoggingMiddleware(log.NewContext(logger).With("method", "Concat"))(concatEndpoint)
 		concatEndpoint = InstrumentingMiddleware(duration.With("method", "Concat"))(concatEndpoint)
 	}
