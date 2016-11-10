@@ -8,7 +8,9 @@ import (
 	"net/http"
 
 	"github.com/go-kit/kit/log"
+	"github.com/go-kit/kit/tracing/opentracing"
 	httptransport "github.com/go-kit/kit/transport/http"
+	stdopentracing "github.com/opentracing/opentracing-go"
 	"github.com/prometheus/client_golang/prometheus/promhttp"
 	"golang.org/x/net/context"
 
@@ -18,7 +20,7 @@ import (
 
 // NewHandler returns a handler that makes a set of endpoints available on
 // predefined paths.
-func NewHandler(ctx context.Context, endpoints endpoints.Endpoints, logger log.Logger) http.Handler {
+func NewHandler(ctx context.Context, endpoints endpoints.Endpoints, logger log.Logger, trace stdopentracing.Tracer) http.Handler {
 	options := []httptransport.ServerOption{
 		httptransport.ServerErrorEncoder(errorEncoder),
 		httptransport.ServerErrorLogger(logger),
@@ -29,14 +31,14 @@ func NewHandler(ctx context.Context, endpoints endpoints.Endpoints, logger log.L
 		endpoints.SumEndpoint,
 		DecodeSumRequest,
 		EncodeGenericResponse,
-		options...,
+		append(options, httptransport.ServerBefore(opentracing.FromHTTPRequest(trace, "Sum", logger)))...,
 	))
 	m.Handle("/concat", httptransport.NewServer(
 		ctx,
 		endpoints.ConcatEndpoint,
 		DecodeConcatRequest,
 		EncodeGenericResponse,
-		options...,
+		append(options, httptransport.ServerBefore(opentracing.FromHTTPRequest(trace, "Concat", logger)))...,
 	))
 	m.Handle("/metrics", promhttp.Handler())
 	return m
