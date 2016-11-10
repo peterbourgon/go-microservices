@@ -2,6 +2,7 @@ package endpoints
 
 import (
 	"github.com/go-kit/kit/endpoint"
+	"github.com/go-kit/kit/log"
 	"github.com/go-kit/kit/metrics"
 	"golang.org/x/net/context"
 
@@ -10,15 +11,17 @@ import (
 
 // New returns an Endpoints that wraps the provided server, and wires in all of
 // the expected endpoint middlewares via the various parameters.
-func New(svc service.Service, duration metrics.Histogram) Endpoints {
+func New(svc service.Service, logger log.Logger, duration metrics.Histogram) Endpoints {
 	var sumEndpoint endpoint.Endpoint
 	{
 		sumEndpoint = MakeSumEndpoint(svc)
+		sumEndpoint = LoggingMiddleware(log.NewContext(logger).With("method", "Sum"))(sumEndpoint)
 		sumEndpoint = InstrumentingMiddleware(duration.With("method", "Sum"))(sumEndpoint)
 	}
 	var concatEndpoint endpoint.Endpoint
 	{
 		concatEndpoint = MakeConcatEndpoint(svc)
+		concatEndpoint = LoggingMiddleware(log.NewContext(logger).With("method", "Concat"))(concatEndpoint)
 		concatEndpoint = InstrumentingMiddleware(duration.With("method", "Concat"))(concatEndpoint)
 	}
 	return Endpoints{

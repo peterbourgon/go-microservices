@@ -2,10 +2,10 @@ package main
 
 import (
 	"flag"
-	"log"
 	"net/http"
 	"os"
 
+	"github.com/go-kit/kit/log"
 	"github.com/go-kit/kit/metrics"
 	"github.com/go-kit/kit/metrics/prometheus"
 	stdprometheus "github.com/prometheus/client_golang/prometheus"
@@ -19,6 +19,13 @@ import (
 func main() {
 	addr := flag.String("addr", ":8080", "HTTP listen address")
 	flag.Parse()
+
+	var logger log.Logger
+	{
+		logger = log.NewLogfmtLogger(os.Stderr)
+		logger = log.NewContext(logger).With("ts", log.DefaultTimestampUTC)
+		logger = log.NewContext(logger).With("caller", log.DefaultCaller)
+	}
 
 	// Our metrics are dependencies, here we create them.
 	var ints, chars metrics.Counter
@@ -48,10 +55,10 @@ func main() {
 		}, []string{"method", "success"})
 	}
 
-	svc := service.New(log.New(os.Stderr, "", log.LstdFlags), ints, chars)
-	eps := endpoints.New(svc, duration)
+	svc := service.New(logger, ints, chars)
+	eps := endpoints.New(svc, logger, duration)
 	mux := addhttp.NewHandler(context.Background(), eps)
 
-	log.Printf("listening on %s", *addr)
-	log.Fatal(http.ListenAndServe(*addr, mux))
+	logger.Log("transport", "HTTP", "addr", *addr)
+	logger.Log("exit", http.ListenAndServe(*addr, mux))
 }
