@@ -26,7 +26,7 @@ Links and further reading.
 - [Netflix Ribbon](https://github.com/Netflix/ribbon), [Eureka](https://github.com/netflix/eureka), [Hystrix](https://github.com/netflix/hystrix)
 - [Spring Boot](https://projects.spring.io/spring-boot/)
 - [Prometheus](https://prometheus.io)
-- [OpenTracing](https://opentracing.io), [Zipkin](http://zipkin.io)
+- [OpenTracing](http://opentracing.io), [Zipkin](http://zipkin.io)
 - [Introduction to Pact](https://docs.pact.io/); [Getting started with Pact](http://dius.com.au/2016/02/03/microservices-pact/)
 
 ## Miscellaneous links
