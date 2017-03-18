@@ -13,7 +13,6 @@ import (
 	httptransport "github.com/go-kit/kit/transport/http"
 	stdopentracing "github.com/opentracing/opentracing-go"
 	stdprometheus "github.com/prometheus/client_golang/prometheus"
-	"golang.org/x/net/context"
 )
 
 func main() {
@@ -28,8 +27,8 @@ func main() {
 	var logger log.Logger
 	{
 		logger = log.NewLogfmtLogger(os.Stdout)
-		logger = log.NewContext(logger).With("ts", log.DefaultTimestampUTC)
-		logger = log.NewContext(logger).With("caller", log.DefaultCaller)
+		logger = log.With(logger, "ts", log.DefaultTimestampUTC)
+		logger = log.With(logger, "caller", log.DefaultCaller)
 	}
 	logger.Log("msg", "hello")
 	defer logger.Log("msg", "goodbye")
@@ -116,15 +115,12 @@ func makeServeMux(
 	// Transport domain.
 	mux := http.NewServeMux()
 	{
-		ctx := context.Background()
 		uppercaseHandler := httptransport.NewServer(
-			ctx,
 			uppercaseEndpoint,
 			decodeUppercaseRequest,
 			encodeResponse,
 		)
 		countHandler := httptransport.NewServer(
-			ctx,
 			countEndpoint,
 			decodeCountRequest,
 			encodeResponse,

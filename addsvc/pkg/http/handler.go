@@ -2,6 +2,7 @@ package http
 
 import (
 	"bytes"
+	"context"
 	"encoding/json"
 	"errors"
 	"io/ioutil"
@@ -12,7 +13,6 @@ import (
 	httptransport "github.com/go-kit/kit/transport/http"
 	stdopentracing "github.com/opentracing/opentracing-go"
 	"github.com/prometheus/client_golang/prometheus/promhttp"
-	"golang.org/x/net/context"
 
 	"github.com/peterbourgon/go-microservices/addsvc/pkg/endpoints"
 	"github.com/peterbourgon/go-microservices/addsvc/pkg/service"
@@ -27,14 +27,12 @@ func NewHandler(ctx context.Context, endpoints endpoints.Endpoints, logger log.L
 	}
 	m := http.NewServeMux()
 	m.Handle("/sum", httptransport.NewServer(
-		ctx,
 		endpoints.SumEndpoint,
 		DecodeSumRequest,
 		EncodeGenericResponse,
 		append(options, httptransport.ServerBefore(opentracing.FromHTTPRequest(trace, "Sum", logger)))...,
 	))
 	m.Handle("/concat", httptransport.NewServer(
-		ctx,
 		endpoints.ConcatEndpoint,
 		DecodeConcatRequest,
 		EncodeGenericResponse,
@@ -53,15 +51,6 @@ func err2code(err error) int {
 	switch err {
 	case service.ErrTwoZeroes, service.ErrMaxSizeExceeded, service.ErrIntOverflow:
 		return http.StatusBadRequest
-	}
-	switch e := err.(type) {
-	case httptransport.Error:
-		switch e.Domain {
-		case httptransport.DomainDecode:
-			return http.StatusBadRequest
-		case httptransport.DomainDo:
-			return err2code(e.Err)
-		}
 	}
 	return http.StatusInternalServerError
 }
