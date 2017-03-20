@@ -1,6 +1,7 @@
 package main
 
 import (
+	"context"
 	"flag"
 	"net/http"
 	"os"
@@ -9,8 +10,8 @@ import (
 	"github.com/go-kit/kit/metrics"
 	"github.com/go-kit/kit/metrics/prometheus"
 	stdopentracing "github.com/opentracing/opentracing-go"
+	zipkin "github.com/openzipkin/zipkin-go-opentracing"
 	stdprometheus "github.com/prometheus/client_golang/prometheus"
-	"golang.org/x/net/context"
 
 	"github.com/peterbourgon/go-microservices/addsvc/pkg/endpoints"
 	addhttp "github.com/peterbourgon/go-microservices/addsvc/pkg/http"
@@ -18,7 +19,10 @@ import (
 )
 
 func main() {
-	addr := flag.String("addr", ":8080", "HTTP listen address")
+	var (
+		httpAddr  = flag.String("http-addr", ":8080", "HTTP listen address")
+		zipkinURL = flag.String("zipkin-url", "", "Zipkin collector URL e.g. http://localhost:9411/api/v1/spans")
+	)
 	flag.Parse()
 
 	var logger log.Logger
@@ -28,9 +32,31 @@ func main() {
 		logger = log.With(logger, "caller", log.DefaultCaller)
 	}
 
-	var trace stdopentracing.Tracer
+	var tracer stdopentracing.Tracer
 	{
-		trace = stdopentracing.GlobalTracer() // no-op
+		if *zipkinURL != "" {
+			logger.Log("zipkin", *zipkinURL)
+			collector, err := zipkin.NewHTTPCollector(*zipkinURL)
+			if err != nil {
+				logger.Log("err", err)
+				os.Exit(1)
+			}
+			defer collector.Close()
+			var (
+				debug       = false
+				hostPort    = "localhost:80"
+				serviceName = "addsvc"
+			)
+			tracer, err = zipkin.NewTracer(zipkin.NewRecorder(
+				collector, debug, hostPort, serviceName,
+			))
+			if err != nil {
+				logger.Log("err", err)
+				os.Exit(1)
+			}
+		} else {
+			tracer = stdopentracing.GlobalTracer() // no-op
+		}
 	}
 
 	// Our metrics are dependencies, here we create them.
@@ -62,9 +88,9 @@ func main() {
 	}
 
 	svc := service.New(logger, ints, chars)
-	eps := endpoints.New(svc, logger, duration, trace)
-	mux := addhttp.NewHandler(context.Background(), eps, logger, trace)
+	eps := endpoints.New(svc, logger, duration, tracer)
+	mux := addhttp.NewHandler(context.Background(), eps, logger, tracer)
 
-	logger.Log("transport", "HTTP", "addr", *addr)
-	logger.Log("exit", http.ListenAndServe(*addr, mux))
+	logger.Log("transport", "HTTP", "addr", *httpAddr)
+	logger.Log("exit", http.ListenAndServe(*httpAddr, mux))
 }
