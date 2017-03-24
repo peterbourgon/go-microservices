@@ -1,7 +1,11 @@
-package endpoints
+package endpoint
 
 import (
 	"context"
+
+	rl "github.com/juju/ratelimit"
+	stdopentracing "github.com/opentracing/opentracing-go"
+	"github.com/sony/gobreaker"
 
 	"github.com/go-kit/kit/circuitbreaker"
 	"github.com/go-kit/kit/endpoint"
@@ -9,9 +13,6 @@ import (
 	"github.com/go-kit/kit/metrics"
 	"github.com/go-kit/kit/ratelimit"
 	"github.com/go-kit/kit/tracing/opentracing"
-	rl "github.com/juju/ratelimit"
-	stdopentracing "github.com/opentracing/opentracing-go"
-	"github.com/sony/gobreaker"
 
 	"github.com/peterbourgon/go-microservices/addsvc/pkg/service"
 )

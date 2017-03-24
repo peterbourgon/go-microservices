@@ -14,13 +14,13 @@ import (
 	stdopentracing "github.com/opentracing/opentracing-go"
 	"github.com/prometheus/client_golang/prometheus/promhttp"
 
-	"github.com/peterbourgon/go-microservices/addsvc/pkg/endpoints"
+	"github.com/peterbourgon/go-microservices/addsvc/pkg/endpoint"
 	"github.com/peterbourgon/go-microservices/addsvc/pkg/service"
 )
 
 // NewHandler returns a handler that makes a set of endpoints available on
 // predefined paths.
-func NewHandler(ctx context.Context, endpoints endpoints.Endpoints, logger log.Logger, trace stdopentracing.Tracer) http.Handler {
+func NewHandler(ctx context.Context, endpoints endpoint.Endpoints, logger log.Logger, trace stdopentracing.Tracer) http.Handler {
 	options := []httptransport.ServerOption{
 		httptransport.ServerErrorEncoder(errorEncoder),
 		httptransport.ServerErrorLogger(logger),
@@ -71,7 +71,7 @@ type errorWrapper struct {
 // JSON-encoded sum request from the HTTP request body. Primarily useful in a
 // server.
 func DecodeSumRequest(_ context.Context, r *http.Request) (interface{}, error) {
-	var req endpoints.SumRequest
+	var req endpoint.SumRequest
 	err := json.NewDecoder(r.Body).Decode(&req)
 	return req, err
 }
@@ -80,7 +80,7 @@ func DecodeSumRequest(_ context.Context, r *http.Request) (interface{}, error) {
 // JSON-encoded concat request from the HTTP request body. Primarily useful in a
 // server.
 func DecodeConcatRequest(_ context.Context, r *http.Request) (interface{}, error) {
-	var req endpoints.ConcatRequest
+	var req endpoint.ConcatRequest
 	err := json.NewDecoder(r.Body).Decode(&req)
 	return req, err
 }
@@ -94,7 +94,7 @@ func DecodeSumResponse(_ context.Context, r *http.Response) (interface{}, error)
 	if r.StatusCode != http.StatusOK {
 		return nil, errors.New(r.Status)
 	}
-	var resp endpoints.SumResponse
+	var resp endpoint.SumResponse
 	err := json.NewDecoder(r.Body).Decode(&resp)
 	return resp, err
 }
@@ -108,7 +108,7 @@ func DecodeConcatResponse(_ context.Context, r *http.Response) (interface{}, err
 	if r.StatusCode != http.StatusOK {
 		return nil, errors.New(r.Status)
 	}
-	var resp endpoints.ConcatResponse
+	var resp endpoint.ConcatResponse
 	err := json.NewDecoder(r.Body).Decode(&resp)
 	return resp, err
 }
@@ -127,9 +127,10 @@ func EncodeGenericRequest(_ context.Context, r *http.Request, request interface{
 // EncodeGenericResponse is a transport/http.EncodeResponseFunc that encodes
 // the response as JSON to the response writer. Primarily useful in a server.
 func EncodeGenericResponse(ctx context.Context, w http.ResponseWriter, response interface{}) error {
-	if f, ok := response.(endpoints.Failer); ok && f.Failed() != nil {
+	if f, ok := response.(endpoint.Failer); ok && f.Failed() != nil {
 		errorEncoder(ctx, f.Failed(), w)
 		return nil
 	}
+	w.Header().Set("Content-Type", "application/json; charset=utf-8")
 	return json.NewEncoder(w).Encode(response)
 }

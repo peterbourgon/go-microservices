@@ -13,9 +13,9 @@ import (
 	zipkin "github.com/openzipkin/zipkin-go-opentracing"
 	stdprometheus "github.com/prometheus/client_golang/prometheus"
 
-	"github.com/peterbourgon/go-microservices/addsvc/pkg/endpoints"
+	addendpoint "github.com/peterbourgon/go-microservices/addsvc/pkg/endpoint"
 	addhttp "github.com/peterbourgon/go-microservices/addsvc/pkg/http"
-	"github.com/peterbourgon/go-microservices/addsvc/pkg/service"
+	addservice "github.com/peterbourgon/go-microservices/addsvc/pkg/service"
 )
 
 func main() {
@@ -87,8 +87,8 @@ func main() {
 		}, []string{"method", "success"})
 	}
 
-	svc := service.New(logger, ints, chars)
-	eps := endpoints.New(svc, logger, duration, tracer)
+	svc := addservice.New(logger, ints, chars)
+	eps := addendpoint.New(svc, logger, duration, tracer)
 	mux := addhttp.NewHandler(context.Background(), eps, logger, tracer)
 
 	logger.Log("transport", "HTTP", "addr", *httpAddr)
