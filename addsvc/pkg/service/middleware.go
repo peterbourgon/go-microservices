@@ -1,9 +1,10 @@
 package service
 
 import (
+	"context"
+
 	"github.com/go-kit/kit/log"
 	"github.com/go-kit/kit/metrics"
-	"golang.org/x/net/context"
 )
 
 // Middleware describes a service (as opposed to endpoint) middleware.

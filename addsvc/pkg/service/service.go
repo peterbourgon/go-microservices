@@ -1,11 +1,11 @@
 package service
 
 import (
+	"context"
 	"errors"
 
 	"github.com/go-kit/kit/log"
 	"github.com/go-kit/kit/metrics"
-	"golang.org/x/net/context"
 )
 
 // Service describes a service that adds things together.

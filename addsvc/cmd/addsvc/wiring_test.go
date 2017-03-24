@@ -1,6 +1,7 @@
 package main
 
 import (
+	"context"
 	"io/ioutil"
 	"net/http"
 	"net/http/httptest"
@@ -10,16 +11,15 @@ import (
 	"github.com/go-kit/kit/log"
 	"github.com/go-kit/kit/metrics/discard"
 	"github.com/opentracing/opentracing-go"
-	"golang.org/x/net/context"
 
-	"github.com/peterbourgon/go-microservices/addsvc/pkg/endpoints"
+	addendpoint "github.com/peterbourgon/go-microservices/addsvc/pkg/endpoint"
 	addhttp "github.com/peterbourgon/go-microservices/addsvc/pkg/http"
-	"github.com/peterbourgon/go-microservices/addsvc/pkg/service"
+	addservice "github.com/peterbourgon/go-microservices/addsvc/pkg/service"
 )
 
 func TestWiring(t *testing.T) {
-	svc := service.New(log.NewNopLogger(), discard.NewCounter(), discard.NewCounter())
-	eps := endpoints.New(svc, log.NewNopLogger(), discard.NewHistogram(), opentracing.GlobalTracer())
+	svc := addservice.New(log.NewNopLogger(), discard.NewCounter(), discard.NewCounter())
+	eps := addendpoint.New(svc, log.NewNopLogger(), discard.NewHistogram(), opentracing.GlobalTracer())
 	mux := addhttp.NewHandler(context.Background(), eps, log.NewNopLogger(), opentracing.GlobalTracer())
 	srv := httptest.NewServer(mux)
 	defer srv.Close()
