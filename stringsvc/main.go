@@ -12,14 +12,16 @@ import (
 	"github.com/go-kit/kit/tracing/opentracing"
 	httptransport "github.com/go-kit/kit/transport/http"
 	stdopentracing "github.com/opentracing/opentracing-go"
+	zipkin "github.com/openzipkin/zipkin-go-opentracing"
 	stdprometheus "github.com/prometheus/client_golang/prometheus"
+	"github.com/prometheus/client_golang/prometheus/promhttp"
 )
 
 func main() {
 	// Configuration from the environment.
 	var (
-		httpAddr = flag.String("http.addr", ":8081", "HTTP listen address")
-		//tracerAddr = flag.String("tracer.addr", "", "Enable Tracer tracing via a Tracer server host:port")
+		httpAddr  = flag.String("http.addr", ":8081", "HTTP listen address")
+		zipkinURL = flag.String("zipkin-url", "", "Zipkin collector URL e.g. http://localhost:9411/api/v1/spans")
 	)
 	flag.Parse()
 
@@ -32,6 +34,34 @@ func main() {
 	}
 	logger.Log("msg", "hello")
 	defer logger.Log("msg", "goodbye")
+
+	// Tracer.
+	var tracer stdopentracing.Tracer
+	{
+		if *zipkinURL != "" {
+			logger.Log("zipkin", *zipkinURL)
+			collector, err := zipkin.NewHTTPCollector(*zipkinURL)
+			if err != nil {
+				logger.Log("err", err)
+				os.Exit(1)
+			}
+			defer collector.Close()
+			var (
+				debug       = false
+				hostPort    = "localhost:80"
+				serviceName = "addsvc"
+			)
+			tracer, err = zipkin.NewTracer(zipkin.NewRecorder(
+				collector, debug, hostPort, serviceName,
+			))
+			if err != nil {
+				logger.Log("err", err)
+				os.Exit(1)
+			}
+		} else {
+			tracer = stdopentracing.GlobalTracer() // no-op
+		}
+	}
 
 	// Metrics domain.
 	var requestCount metrics.Counter
@@ -57,29 +87,9 @@ func main() {
 		}, []string{}) // no fields here
 	}
 
-	// Tracing domain.
-	var trace stdopentracing.Tracer
-	{
-		//if *tracerAddr != "" {
-		//	logger.Log("tracer", *tracerAddr)
-		//	storer, err := tracer.NewGRPC(*tracerAddr, &tracer.GRPCOptions{
-		//		QueueSize:     1024,
-		//		FlushInterval: time.Second,
-		//	}, grpc.WithInsecure())
-		//	if err != nil {
-		//		logger.Log("err", err)
-		//		os.Exit(1)
-		//	}
-		//	trace = tracer.NewTracer("stringsvc", storer, tracer.RandomID{})
-		//} else {
-		logger.Log("tracer", "none")
-		trace = stdopentracing.GlobalTracer() // no-op
-		//}
-	}
-
 	// Construct the service.
-	mux := makeServeMux(logger, requestCount, requestLatency, countResult, trace)
-	mux.Handle("/metrics", stdprometheus.Handler())
+	mux := makeServeMux(logger, requestCount, requestLatency, countResult, tracer)
+	mux.Handle("/metrics", promhttp.Handler())
 
 	// Go!
 	logger.Log("transport", "HTTP", "addr", *httpAddr)
@@ -90,7 +100,7 @@ func makeServeMux(
 	logger log.Logger,
 	requestCount metrics.Counter,
 	requestLatency, countResult metrics.Histogram,
-	trace stdopentracing.Tracer,
+	tracer stdopentracing.Tracer,
 ) *http.ServeMux {
 	// Business domain.
 	var svc StringService
@@ -104,29 +114,29 @@ func makeServeMux(
 	var uppercaseEndpoint endpoint.Endpoint
 	{
 		uppercaseEndpoint = makeUppercaseEndpoint(svc)
-		uppercaseEndpoint = opentracing.TraceServer(trace, "Uppercase")(uppercaseEndpoint)
+		uppercaseEndpoint = opentracing.TraceServer(tracer, "Uppercase")(uppercaseEndpoint)
 	}
 	var countEndpoint endpoint.Endpoint
 	{
 		countEndpoint = makeCountEndpoint(svc)
-		countEndpoint = opentracing.TraceServer(trace, "Count")(countEndpoint)
+		countEndpoint = opentracing.TraceServer(tracer, "Count")(countEndpoint)
 	}
 
 	// Transport domain.
 	mux := http.NewServeMux()
 	{
-		uppercaseHandler := httptransport.NewServer(
+		mux.Handle("/uppercase", httptransport.NewServer(
 			uppercaseEndpoint,
 			decodeUppercaseRequest,
 			encodeResponse,
-		)
-		countHandler := httptransport.NewServer(
+			httptransport.ServerBefore(opentracing.FromHTTPRequest(tracer, "Uppercase", logger)),
+		))
+		mux.Handle("/count", httptransport.NewServer(
 			countEndpoint,
 			decodeCountRequest,
 			encodeResponse,
-		)
-		mux.Handle("/uppercase", uppercaseHandler)
-		mux.Handle("/count", countHandler)
+			httptransport.ServerBefore(opentracing.FromHTTPRequest(tracer, "Count", logger)),
+		))
 	}
 
 	return mux
