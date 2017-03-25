@@ -1,0 +1,18 @@
+apiVersion: extensions/v1beta1
+kind: Deployment
+metadata:
+  name: stringsvc
+spec:
+  replicas: 3
+  template:
+    metadata:
+      labels:
+        app: stringsvc
+    spec:
+      containers:
+      - name: stringsvc
+        image: peterbourgon/stringsvc:1.0.0
+        ports:
+        - containerPort: 80
+        command: ["/stringsvc"]
+        args: ["-http-addr=:80", "-zipkin-url=http://zipkin.bourgon.org:9411/api/v1/spans"]
