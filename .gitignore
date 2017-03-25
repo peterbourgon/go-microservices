@@ -8,6 +8,7 @@ addsvc/cmd/addsvc/pacts
 addsvc/cmd/addsvc/logs
 addsvc/build
 addsvc/addsvc
+loadgen/loadgen
 
 # Compiled Object files, Static and Dynamic libs (Shared Objects)
 *.o

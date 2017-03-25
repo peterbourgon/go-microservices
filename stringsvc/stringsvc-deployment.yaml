@@ -11,7 +11,7 @@ spec:
     spec:
       containers:
       - name: stringsvc
-        image: peterbourgon/stringsvc:3.0.0
+        image: peterbourgon/stringsvc:4.0.0
         ports:
         - containerPort: 80
         command: ["/stringsvc"]
