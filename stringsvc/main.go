@@ -20,7 +20,7 @@ import (
 func main() {
 	// Configuration from the environment.
 	var (
-		httpAddr  = flag.String("http.addr", ":8081", "HTTP listen address")
+		httpAddr  = flag.String("http-addr", ":8081", "HTTP listen address")
 		zipkinURL = flag.String("zipkin-url", "", "Zipkin collector URL e.g. http://localhost:9411/api/v1/spans")
 	)
 	flag.Parse()
