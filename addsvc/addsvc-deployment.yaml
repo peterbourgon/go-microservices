@@ -11,8 +11,8 @@ spec:
     spec:
       containers:
       - name: addsvc
-        image: peterbourgon/addsvc:1.0.0
+        image: peterbourgon/addsvc:2.0.0
         ports:
         - containerPort: 80
         command: ["/addsvc"]
-        args: ["-http-addr=:80", "-zipkin-url=http://zipkin.bourgon.org:9411/api/v1/spans"]
+        args: ["-http-addr=:80", "-zipkin-url=http://zipkin.bourgon.org:9411/api/v1/spans", "-postprocess-url=http://stringsvc.default.svc.cluster.local/uppercase"]
