@@ -3,9 +3,11 @@ misc/log
 misc/reports
 stringsvc/pacts
 stringsvc/logs
+stringsvc/stringsvc
 addsvc/cmd/addsvc/pacts
 addsvc/cmd/addsvc/logs
 addsvc/build
+addsvc/addsvc
 
 # Compiled Object files, Static and Dynamic libs (Shared Objects)
 *.o
