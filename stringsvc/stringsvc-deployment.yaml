@@ -2,8 +2,6 @@ apiVersion: extensions/v1beta1
 kind: Deployment
 metadata:
   name: stringsvc
-  annotations:
-    prometheus.io/scrape: "true"
 spec:
   replicas: 3
   template:
