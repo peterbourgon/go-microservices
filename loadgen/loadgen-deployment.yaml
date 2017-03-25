@@ -11,5 +11,5 @@ spec:
     spec:
       containers:
       - name: loadgen
-        image: peterbourgon/loadgen:1.0.0
+        image: peterbourgon/loadgen:2.0.0
         command: ["/loadgen"]
