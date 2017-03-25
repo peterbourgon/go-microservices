@@ -11,11 +11,11 @@ import (
 	"github.com/go-kit/kit/log"
 	"github.com/go-kit/kit/metrics"
 	"github.com/go-kit/kit/metrics/prometheus"
+	"github.com/go-kit/kit/tracing/opentracing"
 	stdopentracing "github.com/opentracing/opentracing-go"
 	zipkin "github.com/openzipkin/zipkin-go-opentracing"
 	stdprometheus "github.com/prometheus/client_golang/prometheus"
 
-	"github.com/go-kit/kit/tracing/opentracing"
 	addendpoint "github.com/peterbourgon/go-microservices/addsvc/pkg/endpoint"
 	addhttp "github.com/peterbourgon/go-microservices/addsvc/pkg/http"
 	addservice "github.com/peterbourgon/go-microservices/addsvc/pkg/service"

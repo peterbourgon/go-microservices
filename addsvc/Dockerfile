@@ -1,3 +1,2 @@
-FROM alpine:3.5
+FROM scratch
 ADD addsvc /
-ENTRYPOINT ["/addsvc"]

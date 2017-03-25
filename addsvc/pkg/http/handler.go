@@ -12,6 +12,7 @@ import (
 	"github.com/go-kit/kit/tracing/opentracing"
 	httptransport "github.com/go-kit/kit/transport/http"
 	stdopentracing "github.com/opentracing/opentracing-go"
+	"github.com/prometheus/client_golang/prometheus"
 	"github.com/prometheus/client_golang/prometheus/promhttp"
 
 	"github.com/peterbourgon/go-microservices/addsvc/pkg/endpoint"
@@ -38,7 +39,7 @@ func NewHandler(ctx context.Context, endpoints endpoint.Endpoints, logger log.Lo
 		EncodeGenericResponse,
 		append(options, httptransport.ServerBefore(opentracing.FromHTTPRequest(tracer, "Concat", logger)))...,
 	))
-	m.Handle("/metrics", promhttp.Handler())
+	m.Handle("/metrics", promhttp.HandlerFor(prometheus.DefaultGatherer, promhttp.HandlerOpts{}))
 	return m
 }
 
