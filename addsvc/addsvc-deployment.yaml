@@ -11,7 +11,7 @@ spec:
     spec:
       containers:
       - name: addsvc
-        image: peterbourgon/addsvc:2.0.0
+        image: peterbourgon/addsvc:3.0.0
         ports:
         - containerPort: 80
         command: ["/addsvc"]
