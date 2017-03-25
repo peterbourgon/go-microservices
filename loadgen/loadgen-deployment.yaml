@@ -1,0 +1,15 @@
+apiVersion: extensions/v1beta1
+kind: Deployment
+metadata:
+  name: loadgen
+spec:
+  replicas: 3
+  template:
+    metadata:
+      labels:
+        app: loadgen
+    spec:
+      containers:
+      - name: loadgen
+        image: peterbourgon/loadgen:1.0.0
+        command: ["/loadgen"]
