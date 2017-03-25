@@ -3,7 +3,7 @@ kind: Deployment
 metadata:
   name: loadgen
 spec:
-  replicas: 3
+  replicas: 1
   template:
     metadata:
       labels:
