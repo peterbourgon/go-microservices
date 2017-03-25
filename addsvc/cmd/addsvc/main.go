@@ -1,7 +1,9 @@
 package main
 
 import (
+	"bytes"
 	"context"
+	"encoding/json"
 	"flag"
 	"net/http"
 	"os"
@@ -20,8 +22,9 @@ import (
 
 func main() {
 	var (
-		httpAddr  = flag.String("http-addr", ":8080", "HTTP listen address")
-		zipkinURL = flag.String("zipkin-url", "", "Zipkin collector URL e.g. http://localhost:9411/api/v1/spans")
+		httpAddr       = flag.String("http-addr", ":8080", "HTTP listen address")
+		zipkinURL      = flag.String("zipkin-url", "", "Zipkin collector URL e.g. http://localhost:9411/api/v1/spans")
+		postprocessURL = flag.String("postprocess-url", "", "URL for postprocessing results of Concat e.g. http://stringsvc.default.svc.cluster.local/uppercase")
 	)
 	flag.Parse()
 
@@ -59,7 +62,6 @@ func main() {
 		}
 	}
 
-	// Our metrics are dependencies, here we create them.
 	var ints, chars metrics.Counter
 	{
 		// Business level metrics.
@@ -87,7 +89,41 @@ func main() {
 		}, []string{"method", "success"})
 	}
 
-	svc := addservice.New(logger, ints, chars)
+	postprocess := func(s string) string { return s } // default no-op
+	if *postprocessURL != "" {
+		postprocess = func(s string) string {
+			body, err := json.Marshal(map[string]string{"s": s})
+			if err != nil {
+				logger.Log("during", "postprocess", "err", err)
+				return s
+			}
+
+			req, err := http.NewRequest("GET", *postprocessURL, bytes.NewReader(body))
+			if err != nil {
+				logger.Log("during", "postprocess", "err", err)
+				return s
+			}
+
+			resp, err := http.DefaultClient.Do(req)
+			if err != nil {
+				logger.Log("during", "postprocess", "err", err)
+				return s
+			}
+			defer resp.Body.Close()
+
+			var response struct {
+				V string `json:"v"`
+			}
+			if err := json.NewDecoder(resp.Body).Decode(&response); err != nil {
+				logger.Log("during", "postprocess", "err", err)
+				return s
+			}
+
+			return response.V
+		}
+	}
+
+	svc := addservice.New(postprocess, logger, ints, chars)
 	eps := addendpoint.New(svc, logger, duration, tracer)
 	mux := addhttp.NewHandler(context.Background(), eps, logger, tracer)
 
