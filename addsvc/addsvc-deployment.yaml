@@ -3,7 +3,7 @@ kind: Deployment
 metadata:
   name: addsvc
   annotations:
-    prometheus.io/scrape: true
+    prometheus.io/scrape: "true"
 spec:
   replicas: 3
   template:
