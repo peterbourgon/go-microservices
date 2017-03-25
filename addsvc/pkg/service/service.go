@@ -15,7 +15,7 @@ type Service interface {
 }
 
 // New returns a basic Service with all of the expected middlewares wired in.
-func New(postprocess func(string) string, logger log.Logger, ints, chars metrics.Counter) Service {
+func New(postprocess func(context.Context, string) string, logger log.Logger, ints, chars metrics.Counter) Service {
 	var svc Service
 	{
 		svc = NewBasicService(postprocess)
@@ -41,12 +41,12 @@ var (
 
 // NewBasicService returns a naïve, stateless implementation of Service.
 // The postprocess func is applied to the results of Concat.
-func NewBasicService(postprocess func(string) string) Service {
+func NewBasicService(postprocess func(context.Context, string) string) Service {
 	return basicService{postprocess}
 }
 
 type basicService struct {
-	postprocess func(string) string
+	postprocess func(context.Context, string) string
 }
 
 const (
@@ -66,9 +66,9 @@ func (s basicService) Sum(_ context.Context, a, b int) (int, error) {
 }
 
 // Concat implements Service.
-func (s basicService) Concat(_ context.Context, a, b string) (string, error) {
+func (s basicService) Concat(ctx context.Context, a, b string) (string, error) {
 	if len(a)+len(b) > maxLen {
 		return "", ErrMaxSizeExceeded
 	}
-	return s.postprocess(a + b), nil
+	return s.postprocess(ctx, a+b), nil
 }

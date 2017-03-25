@@ -20,7 +20,7 @@ import (
 
 // NewHandler returns a handler that makes a set of endpoints available on
 // predefined paths.
-func NewHandler(ctx context.Context, endpoints endpoint.Endpoints, logger log.Logger, trace stdopentracing.Tracer) http.Handler {
+func NewHandler(ctx context.Context, endpoints endpoint.Endpoints, logger log.Logger, tracer stdopentracing.Tracer) http.Handler {
 	options := []httptransport.ServerOption{
 		httptransport.ServerErrorEncoder(errorEncoder),
 		httptransport.ServerErrorLogger(logger),
@@ -30,13 +30,13 @@ func NewHandler(ctx context.Context, endpoints endpoint.Endpoints, logger log.Lo
 		endpoints.SumEndpoint,
 		DecodeSumRequest,
 		EncodeGenericResponse,
-		append(options, httptransport.ServerBefore(opentracing.FromHTTPRequest(trace, "Sum", logger)))...,
+		append(options, httptransport.ServerBefore(opentracing.FromHTTPRequest(tracer, "Sum", logger)))...,
 	))
 	m.Handle("/concat", httptransport.NewServer(
 		endpoints.ConcatEndpoint,
 		DecodeConcatRequest,
 		EncodeGenericResponse,
-		append(options, httptransport.ServerBefore(opentracing.FromHTTPRequest(trace, "Concat", logger)))...,
+		append(options, httptransport.ServerBefore(opentracing.FromHTTPRequest(tracer, "Concat", logger)))...,
 	))
 	m.Handle("/metrics", promhttp.Handler())
 	return m

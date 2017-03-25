@@ -49,7 +49,7 @@ func main() {
 			var (
 				debug       = false
 				hostPort    = "localhost:80"
-				serviceName = "addsvc"
+				serviceName = "stringsvc"
 			)
 			tracer, err = zipkin.NewTracer(zipkin.NewRecorder(
 				collector, debug, hostPort, serviceName,

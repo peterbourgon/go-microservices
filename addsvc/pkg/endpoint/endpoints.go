@@ -19,13 +19,13 @@ import (
 
 // New returns an Endpoints that wraps the provided server, and wires in all of
 // the expected endpoint middlewares via the various parameters.
-func New(svc service.Service, logger log.Logger, duration metrics.Histogram, trace stdopentracing.Tracer) Endpoints {
+func New(svc service.Service, logger log.Logger, duration metrics.Histogram, tracer stdopentracing.Tracer) Endpoints {
 	var sumEndpoint endpoint.Endpoint
 	{
 		sumEndpoint = MakeSumEndpoint(svc)
 		sumEndpoint = ratelimit.NewTokenBucketLimiter(rl.NewBucketWithRate(1, 1))(sumEndpoint)
 		sumEndpoint = circuitbreaker.Gobreaker(gobreaker.NewCircuitBreaker(gobreaker.Settings{}))(sumEndpoint)
-		sumEndpoint = opentracing.TraceServer(trace, "Sum")(sumEndpoint)
+		sumEndpoint = opentracing.TraceServer(tracer, "Sum")(sumEndpoint)
 		sumEndpoint = LoggingMiddleware(log.With(logger, "method", "Sum"))(sumEndpoint)
 		sumEndpoint = InstrumentingMiddleware(duration.With("method", "Sum"))(sumEndpoint)
 	}
@@ -34,7 +34,7 @@ func New(svc service.Service, logger log.Logger, duration metrics.Histogram, tra
 		concatEndpoint = MakeConcatEndpoint(svc)
 		concatEndpoint = ratelimit.NewTokenBucketLimiter(rl.NewBucketWithRate(100, 100))(concatEndpoint)
 		concatEndpoint = circuitbreaker.Gobreaker(gobreaker.NewCircuitBreaker(gobreaker.Settings{}))(concatEndpoint)
-		concatEndpoint = opentracing.TraceServer(trace, "Concat")(concatEndpoint)
+		concatEndpoint = opentracing.TraceServer(tracer, "Concat")(concatEndpoint)
 		concatEndpoint = LoggingMiddleware(log.With(logger, "method", "Concat"))(concatEndpoint)
 		concatEndpoint = InstrumentingMiddleware(duration.With("method", "Concat"))(concatEndpoint)
 	}

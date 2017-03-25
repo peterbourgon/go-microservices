@@ -15,6 +15,7 @@ import (
 	zipkin "github.com/openzipkin/zipkin-go-opentracing"
 	stdprometheus "github.com/prometheus/client_golang/prometheus"
 
+	"github.com/go-kit/kit/tracing/opentracing"
 	addendpoint "github.com/peterbourgon/go-microservices/addsvc/pkg/endpoint"
 	addhttp "github.com/peterbourgon/go-microservices/addsvc/pkg/http"
 	addservice "github.com/peterbourgon/go-microservices/addsvc/pkg/service"
@@ -89,9 +90,11 @@ func main() {
 		}, []string{"method", "success"})
 	}
 
-	postprocess := func(s string) string { return s } // default no-op
+	postprocess := func(ctx context.Context, s string) string { return s } // default no-op
 	if *postprocessURL != "" {
-		postprocess = func(s string) string {
+		logger.Log("postprocess", *postprocessURL)
+		inject := opentracing.ToHTTPRequest(tracer, logger)
+		postprocess = func(ctx context.Context, s string) string {
 			body, err := json.Marshal(map[string]string{"s": s})
 			if err != nil {
 				logger.Log("during", "postprocess", "err", err)
@@ -103,6 +106,8 @@ func main() {
 				logger.Log("during", "postprocess", "err", err)
 				return s
 			}
+
+			inject(ctx, req)
 
 			resp, err := http.DefaultClient.Do(req)
 			if err != nil {
