@@ -1,7 +1,7 @@
 apiVersion: extensions/v1beta1
 kind: Deployment
 metadata:
-  name: addsvc-deployment
+  name: addsvc
 spec:
   replicas: 3
   template:
