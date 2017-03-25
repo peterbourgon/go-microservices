@@ -100,9 +100,9 @@ data:
       - role: endpoints
     
       relabel_configs:
-      - source_labels: [__meta_kubernetes_service_annotation_prometheus_io_scrape]
-        action: keep
-        regex: true
+      #- source_labels: [__meta_kubernetes_service_annotation_prometheus_io_scrape]
+      #  action: keep
+      #  regex: true
       - source_labels: [__meta_kubernetes_service_annotation_prometheus_io_scheme]
         action: replace
         target_label: __scheme__
@@ -141,9 +141,9 @@ data:
       - role: service
     
       relabel_configs:
-      - source_labels: [__meta_kubernetes_service_annotation_prometheus_io_probe]
-        action: keep
-        regex: true
+      #- source_labels: [__meta_kubernetes_service_annotation_prometheus_io_probe]
+      #  action: keep
+      #  regex: true
       - source_labels: [__address__]
         target_label: __param_target
       - target_label: __address__
@@ -171,9 +171,9 @@ data:
       - role: pod
     
       relabel_configs:
-      - source_labels: [__meta_kubernetes_pod_annotation_prometheus_io_scrape]
-        action: keep
-        regex: true
+      #- source_labels: [__meta_kubernetes_pod_annotation_prometheus_io_scrape]
+      #  action: keep
+      #  regex: true
       - source_labels: [__meta_kubernetes_pod_annotation_prometheus_io_path]
         action: replace
         target_label: __metrics_path__
